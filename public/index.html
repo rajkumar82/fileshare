@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Share</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.3rem; }
+    input, button { font: inherit; padding: 10px; box-sizing: border-box; }
+    input { width: 100%; border: 1px solid #c4c7c5; border-radius: 10px; margin-bottom: 8px; }
+    input:focus { outline: 2px solid #1a73e8; outline-offset: 0; border-color: transparent; }
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+    button {
+      background: #1a73e8; color: #fff; border: 0; border-radius: 10px;
+      font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    button:hover { background: #1765cc; }
+    button:active { background: #1558b0; }
+    button:disabled { opacity: 0.6; cursor: default; }
+    button:focus-visible { outline: 3px solid #8ab4f8; outline-offset: 2px; }
+    #status { min-height: 1.4em; margin-top: 8px; font-size: 0.9rem; }
+    .note { margin-top: 16px; font-size: 0.8rem; opacity: 0.65; }
+  </style>
+</head>
+<body>
+  <h1>File Share</h1>
+  <input id="name" placeholder="Text to identify the file (e.g. mytrip2026)" autocapitalize="off" autocomplete="off" spellcheck="false">
+  <input id="file" type="file">
+  <div class="row">
+    <button id="upload">Upload</button>
+    <button id="download">Download</button>
+  </div>
+  <div id="status"></div>
+  <p class="note">Uploaded files are deleted automatically 3 days after upload (max 25 MB). Anyone who knows the text can download the file, so don't store secrets.</p>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const nameEl = $('name'), fileEl = $('file'), statusEl = $('status');
+    const uploadBtn = $('upload');
+
+    nameEl.value = localStorage.getItem('shareName') || '';
+
+    const setStatus = (msg) => (statusEl.textContent = msg);
+    const url = (suffix = '') => `/api/files/${encodeURIComponent(nameEl.value.trim())}${suffix}`;
+    const expiryNote = (d) => `Expires ${new Date(d.expiresAt).toLocaleString()}.`;
+
+    function requireName() {
+      if (nameEl.value.trim()) return true;
+      setStatus('Enter the text first.');
+      return false;
+    }
+
+    async function readJson(res) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      return data;
+    }
+
+    uploadBtn.onclick = async () => {
+      if (!requireName()) return;
+      const file = fileEl.files[0];
+      if (!file) return setStatus('Choose a file first.');
+      const form = new FormData();
+      form.append('file', file);
+      uploadBtn.disabled = true;
+      setStatus('Uploading...');
+      try {
+        const d = await readJson(await fetch(url(), { method: 'PUT', body: form }));
+        localStorage.setItem('shareName', nameEl.value.trim());
+        setStatus(`Uploaded ${d.filename}. ${expiryNote(d)}`);
+      } catch (e) { setStatus(e.message); }
+      uploadBtn.disabled = false;
+    };
+
+    $('download').onclick = async () => {
+      if (!requireName()) return;
+      try {
+        // check first so a missing/expired file shows a message instead of a JSON error page
+        const d = await readJson(await fetch(url()));
+        localStorage.setItem('shareName', nameEl.value.trim());
+        setStatus(`Downloading ${d.filename}. ${expiryNote(d)}`);
+        location.href = url('/download');
+      } catch (e) { setStatus(e.message); }
+    };
+  </script>
+</body>
+</html>
