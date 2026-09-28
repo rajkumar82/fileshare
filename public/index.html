@@ -5,36 +5,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>File Share</title>
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; }
-    h1 { font-size: 1.3rem; }
-    input, button { font: inherit; padding: 10px; box-sizing: border-box; }
-    input { width: 100%; border: 1px solid #c4c7c5; border-radius: 10px; margin-bottom: 8px; }
-    input:focus { outline: 2px solid #1a73e8; outline-offset: 0; border-color: transparent; }
-    .row { display: flex; gap: 8px; }
-    .row button { flex: 1; }
-    button {
-      background: #1a73e8; color: #fff; border: 0; border-radius: 10px;
-      font-weight: 600; cursor: pointer; transition: background 0.15s;
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --card2: #eef1f8;
+      --text: #1b1f2a;
+      --muted: #6b7386;
+      --line: #dfe3ee;
+      --accent: #1a73e8;
+      --accent2: #7c4dff;
+      --grad: linear-gradient(135deg, var(--accent), var(--accent2));
+      --shadow: 0 6px 24px rgba(30, 40, 90, 0.10);
     }
-    button:hover { background: #1765cc; }
-    button:active { background: #1558b0; }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1220;
+        --card: #181c2f;
+        --card2: #20253b;
+        --text: #eceffa;
+        --muted: #98a1bb;
+        --line: #2a3050;
+        --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(600px 300px at 90% -5%, rgba(124, 77, 255, 0.18), transparent 70%),
+        radial-gradient(500px 300px at -10% 0%, rgba(26, 115, 232, 0.16), transparent 70%);
+    }
+    #app {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + 24px) 16px calc(env(safe-area-inset-bottom) + 24px);
+    }
+    .card {
+      padding: 22px 20px;
+      border-radius: 26px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    h1 { margin: 0 0 18px; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    h1 .em { font-size: 1.4rem; }
+    .field { display: block; margin-bottom: 14px; }
+    .field > span { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    input, button { font: inherit; color: inherit; }
+    input {
+      width: 100%; height: 48px; padding: 0 14px;
+      border-radius: 14px; border: 1px solid var(--line); background: var(--bg);
+      font-size: 16px; outline: none;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.25); }
+    input[type="file"] { padding: 12px 14px; height: auto; }
+    .btns { display: flex; gap: 10px; margin-top: 4px; }
+    button {
+      flex: 1; min-height: 48px; padding: 0 14px; border-radius: 14px;
+      background: var(--card2); border: 0; cursor: pointer;
+      font-weight: 700; transition: transform 0.12s, opacity 0.2s;
+    }
+    button:active { transform: scale(0.96); }
     button:disabled { opacity: 0.6; cursor: default; }
-    button:focus-visible { outline: 3px solid #8ab4f8; outline-offset: 2px; }
-    #status { min-height: 1.4em; margin-top: 8px; font-size: 0.9rem; }
-    .note { margin-top: 16px; font-size: 0.8rem; opacity: 0.65; }
+    button.primary { background: var(--grad); color: #fff; }
+    button:focus-visible { outline: 3px solid rgba(26, 115, 232, 0.55); outline-offset: 2px; }
+    #status { min-height: 1.4em; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+    .note { margin: 16px 0 0; font-size: 0.78rem; line-height: 1.5; color: var(--muted); }
   </style>
 </head>
 <body>
-  <h1>File Share</h1>
-  <input id="name" placeholder="Text to identify the file (e.g. mytrip2026)" autocapitalize="off" autocomplete="off" spellcheck="false">
-  <input id="file" type="file">
-  <div class="row">
-    <button id="upload">Upload</button>
-    <button id="download">Download</button>
+  <div id="app">
+    <div class="card">
+      <h1><span class="em">📁</span> File Share</h1>
+      <label class="field">
+        <span>Text to identify the file</span>
+        <input id="name" placeholder="e.g. mytrip2026" autocapitalize="off" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>File</span>
+        <input id="file" type="file">
+      </label>
+      <div class="btns">
+        <button id="upload" class="primary">Upload</button>
+        <button id="download">Download</button>
+      </div>
+      <div id="status"></div>
+      <p class="note">Uploaded files are deleted automatically 3 days after upload (max 25 MB). Anyone who knows the text can download the file, so don't store secrets.</p>
+    </div>
   </div>
-  <div id="status"></div>
-  <p class="note">Uploaded files are deleted automatically 3 days after upload (max 25 MB). Anyone who knows the text can download the file, so don't store secrets.</p>
 
   <script>
     const $ = (id) => document.getElementById(id);
