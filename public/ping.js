@@ -3,7 +3,8 @@
 //
 // "Real person" means: not an automated browser or known bot, has touched/clicked/scrolled/typed, and has had the
 // page visible for MIN_VISIBLE_S seconds. Nothing is sent before that, nothing is shown, and failures are ignored.
-// Only a random device id (kept in localStorage) identifies a device. No cookies, no IP kept by the service.
+// Only a random device id identifies a device (kept in a cookie shared by my *.nocod.dev apps, and in localStorage as
+// backup). No IP is kept by the service.
 //
 // Optional hooks for the page:
 //   window.pingCount('share')   count a feature use; the totals go out with the next ping
@@ -15,6 +16,17 @@
   var VERSION = (script.dataset.version || '').slice(0, 20);
   var MIN_VISIBLE_S = 10;
   var KEY = 'fb:' + APP;
+
+  // Never count development addresses. My own use is hidden from the dashboard instead (feedback/README.md).
+  var cookieDomain = /(^|\.)nocod\.dev$/.test(location.hostname) ? '; domain=.nocod.dev' : '';
+  function setCookie(name, value, maxAge) {
+    try { document.cookie = name + '=' + value + '; max-age=' + maxAge + '; path=/; SameSite=Lax' + cookieDomain + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) { /* ignore */ }
+  }
+  function getCookie(name) {
+    var m = new RegExp('(?:^|; )' + name + '=([^;]*)').exec(document.cookie);
+    return m ? m[1] : '';
+  }
+  if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|.*\.local$)/.test(location.hostname)) return;
 
   var BOT = /bot|crawl|spider|slurp|preview|headless|lighthouse|pagespeed|facebookexternalhit|phantom|puppeteer|playwright/i;
   if (navigator.webdriver || BOT.test(navigator.userAgent || '')) return;
@@ -29,6 +41,11 @@
     state.id = (self.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + String(Date.now());
     state.first = today;
   }
+  // One device id for the whole browser, shared by all my apps through a cookie on .nocod.dev, so the dashboard can
+  // be told "this browser is mine" once (see feedback/README.md). Falls back to the per-app id when cookies are blocked.
+  var sharedId = getCookie('fb_did');
+  if (/^[A-Za-z0-9-]{8,40}$/.test(sharedId)) state.id = sharedId;
+  else setCookie('fb_did', state.id, 63072000);
   if (!sessionStorage.getItem(KEY)) { // once per browser session
     try { sessionStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ }
     state.visits = (state.visits || 0) + 1;
