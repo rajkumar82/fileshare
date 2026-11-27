@@ -1,4 +1,5 @@
 const express = require('express');
+const { serveFresh } = require('./fresh-server');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -89,7 +90,7 @@ async function findLive(name) {
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), defParamCharset: 'utf8', limits: { fileSize: MAX_FILE, files: 1 } });
-app.use(express.static(path.join(__dirname, 'public')));
+serveFresh(app, express, path.join(__dirname, 'public'));   // content ETags + build stamp for public/fresh.js (fresh-server.js, from shared/pwa)
 
 app.param('name', (req, res, next, raw) => {
   const name = String(raw).trim().toLowerCase();
